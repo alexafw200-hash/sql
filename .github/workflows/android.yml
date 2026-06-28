@@ -20,8 +20,8 @@ jobs:
     - name: Fix Corrupt Wrapper
       run: gradle wrapper --gradle-version 8.6
 
-    - name: Decode Keystore
-      run: base64 -d debug.keystore.base64 > debug.keystore
+    - name: Generate debug keystore
+      run: keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "C=US, O=Android, CN=Android Debug"
 
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
