@@ -4,11 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -19,13 +19,14 @@ import com.example.domain.SqlTranslationEngine
 import com.example.ui.theme.CyanPrimary
 import com.example.ui.theme.DarkBlueBackground
 import com.example.ui.theme.DarkBlueSurface
+import com.example.ui.theme.GrayText
 import com.example.ui.theme.LightText
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SqlTranslatorScreen(navController: NavController) {
-    var sourceQuery by remember { mutableStateOf("CREATE TABLE users (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name VARCHAR(255)\n);") }
-    var translatedQuery by remember { mutableStateOf("") }
+    var sourceQuery by remember { mutableStateOf("") }
+    var translatedQuery by remember { mutableStateOf("CREATE TABLE users (\n  id INTEGER AUTO_INCREMENT\n    PRIMARY KEY,\n  name VARCHAR(255),\n  email VARCHAR(255)\n);") }
     
     var fromEngine by remember { mutableStateOf("SQLite") }
     var toEngine by remember { mutableStateOf("MySQL") }
@@ -33,7 +34,7 @@ fun SqlTranslatorScreen(navController: NavController) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("SQL Translator", fontSize = 18.sp) },
+                title = { Text("SQL Translator", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
@@ -59,9 +60,15 @@ fun SqlTranslatorScreen(navController: NavController) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                EngineSelector(selected = fromEngine, onSelect = { fromEngine = it })
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = LightText)
-                EngineSelector(selected = toEngine, onSelect = { toEngine = it })
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("From", color = GrayText, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
+                    EngineSelector(selected = fromEngine, onSelect = { fromEngine = it })
+                }
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("To", color = GrayText, fontSize = 12.sp, modifier = Modifier.padding(bottom = 4.dp))
+                    EngineSelector(selected = toEngine, onSelect = { toEngine = it })
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -76,23 +83,10 @@ fun SqlTranslatorScreen(navController: NavController) {
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = DarkBlueSurface,
                     unfocusedContainerColor = DarkBlueSurface,
-                    unfocusedBorderColor = DarkBlueSurface,
+                    unfocusedBorderColor = Color.Transparent,
                     focusedBorderColor = CyanPrimary
-                ),
-                label = { Text("Source Query", color = CyanPrimary) }
+                )
             )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Button(
-                onClick = {
-                    translatedQuery = SqlTranslationEngine.translate(sourceQuery, fromEngine, toEngine)
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = CyanPrimary)
-            ) {
-                Text("Translate", color = DarkBlueBackground, fontWeight = FontWeight.Bold)
-            }
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -103,15 +97,28 @@ fun SqlTranslatorScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                textStyle = TextStyle(color = CyanPrimary, fontFamily = FontFamily.Monospace),
+                textStyle = TextStyle(color = Color(0xFFE6EE9C), fontFamily = FontFamily.Monospace), // Match yellowish text in picture
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = DarkBlueSurface,
                     unfocusedContainerColor = DarkBlueSurface,
-                    unfocusedBorderColor = DarkBlueSurface,
+                    unfocusedBorderColor = Color.Transparent,
                     focusedBorderColor = CyanPrimary
-                ),
-                label = { Text("Translated Query", color = CyanPrimary) }
+                )
             )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Button(
+                onClick = {
+                    if (sourceQuery.isNotEmpty()) {
+                        translatedQuery = SqlTranslationEngine.translate(sourceQuery, fromEngine, toEngine)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+            ) {
+                Text("Translate", color = Color.White, fontWeight = FontWeight.SemiBold)
+            }
         }
     }
 }
@@ -125,19 +132,21 @@ fun EngineSelector(selected: String, onSelect: (String) -> Unit) {
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = !expanded },
-        modifier = Modifier.width(150.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
         OutlinedTextField(
             value = selected,
             onValueChange = {},
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
+            modifier = Modifier
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = DarkBlueSurface,
                 unfocusedContainerColor = DarkBlueSurface,
                 focusedBorderColor = CyanPrimary,
-                unfocusedBorderColor = DarkBlueSurface,
+                unfocusedBorderColor = Color.Transparent,
                 focusedTextColor = LightText,
                 unfocusedTextColor = LightText
             )

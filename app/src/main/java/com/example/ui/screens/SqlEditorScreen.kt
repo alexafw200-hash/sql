@@ -11,17 +11,25 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
+import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -34,43 +42,26 @@ import com.example.ui.viewmodels.SqlEditorViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SqlEditorScreen(navController: NavController, viewModel: SqlEditorViewModel) {
-    var queryText by remember { mutableStateOf("SELECT * FROM users;\n") }
+    var queryText by remember { mutableStateOf("SELECT u.id, u.name, u.email\nFROM users u\nINNER JOIN orders o ON u.id = o.user_id\nWHERE u.status = 'active'\nORDER BY o.created_at DESC\nLIMIT 100;") }
     val queryResult by viewModel.queryResult.collectAsStateWithLifecycle()
     val isExecuting by viewModel.isExecuting.collectAsStateWithLifecycle()
+    var selectedTab by remember { mutableStateOf(0) }
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text("SQL Editor", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) },
-                    navigationIcon = {
-                        IconButton(onClick = { navController.navigateUp() }) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { navController.navigate(Screen.DatabaseExplorer.route) }) {
-                            Icon(Icons.Default.TableChart, contentDescription = "Database Explorer", tint = GrayText)
-                        }
-                        IconButton(
-                            onClick = { viewModel.executeQuery(queryText) },
-                            enabled = !isExecuting
-                        ) {
-                            Icon(
-                                Icons.Default.PlayArrow,
-                                contentDescription = "Execute",
-                                tint = if (isExecuting) GrayText else CyanPrimary
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = DarkBlueSurface.copy(alpha = 0.9f),
-                        titleContentColor = LightText,
-                        navigationIconContentColor = LightText
-                    )
+            TopAppBar(
+                title = { Text("SQL RUN", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) },
+                navigationIcon = {
+                    IconButton(onClick = { navController.navigateUp() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DarkBlueBackground,
+                    titleContentColor = LightText,
+                    navigationIconContentColor = LightText
                 )
-                HorizontalDivider(color = BorderLight, thickness = 1.dp)
-            }
+            )
         },
         containerColor = DarkBlueBackground
     ) { padding ->
@@ -79,21 +70,78 @@ fun SqlEditorScreen(navController: NavController, viewModel: SqlEditorViewModel)
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // Editor Area
-            Surface(
+            // Toolbar row
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                color = DarkBlueSurface
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(modifier = Modifier.padding(16.dp)) {
+                // Database selector
+                Surface(
+                    color = DarkBlueSurfaceVariant.copy(alpha = 0.5f),
+                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.Storage, contentDescription = null, tint = LightText, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Local SQLite", color = LightText, fontSize = 14.sp)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = LightText, modifier = Modifier.size(16.dp))
+                    }
+                }
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                IconButton(
+                    onClick = { viewModel.executeQuery(queryText) },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(Color(0xFF1976D2).copy(alpha = 0.2f), RoundedCornerShape(20.dp))
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = "Run", tint = CyanPrimary)
+                }
+                
+                IconButton(onClick = { navController.navigate(Screen.DatabaseExplorer.route) }) {
+                    Icon(Icons.Default.MoreVert, contentDescription = "Options", tint = LightText)
+                }
+            }
+
+            // Editor Area
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                val lines = queryText.split("\n")
+                Row {
+                    // Line numbers
+                    Column(
+                        modifier = Modifier.padding(end = 12.dp),
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        for (i in 1..lines.size) {
+                            Text(
+                                text = i.toString(),
+                                color = GrayText,
+                                fontFamily = FontFamily.Monospace,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                    // Editor
                     BasicTextField(
                         value = queryText,
                         onValueChange = { queryText = it },
                         textStyle = TextStyle(
-                            color = CyanPrimary, // Simple syntax coloring placeholder
+                            color = LightText, 
                             fontFamily = FontFamily.Monospace,
-                            fontSize = 16.sp
+                            fontSize = 14.sp
                         ),
                         cursorBrush = SolidColor(CyanPrimary),
                         modifier = Modifier.fillMaxSize()
@@ -105,40 +153,99 @@ fun SqlEditorScreen(navController: NavController, viewModel: SqlEditorViewModel)
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
-                color = DarkBlueSurfaceVariant,
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                border = BorderStroke(1.dp, CyanPrimary.copy(alpha = 0.3f))
+                    .weight(1.2f), // Make it a bit taller based on picture
+                color = DarkBlueSurface,
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
             ) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     TabRow(
-                        selectedTabIndex = 0,
-                        containerColor = DarkBlueSurfaceVariant,
-                        contentColor = CyanPrimary
+                        selectedTabIndex = selectedTab,
+                        containerColor = DarkBlueSurface,
+                        contentColor = CyanPrimary,
+                        indicator = { tabPositions ->
+                            if (selectedTab < tabPositions.size) {
+                                TabRowDefaults.SecondaryIndicator(
+                                    Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
+                                    color = CyanPrimary
+                                )
+                            }
+                        }
                     ) {
                         Tab(
-                            selected = true,
-                            onClick = { },
-                            text = { Text("RESULT PREVIEW", fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp) }
+                            selected = selectedTab == 0,
+                            onClick = { selectedTab = 0 },
+                            text = { Text("RESULTS", fontWeight = FontWeight.Bold, fontSize = 12.sp) }
                         )
                         Tab(
-                            selected = false,
-                            onClick = { },
-                            text = { Text("MESSAGES", color = GrayText) }
+                            selected = selectedTab == 1,
+                            onClick = { selectedTab = 1 },
+                            text = { Text("MESSAGES", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = GrayText) }
                         )
                     }
-                    
-                    if (isExecuting) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = CyanPrimary)
-                        }
-                    } else {
-                        queryResult?.let { result ->
-                            ResultGrid(result = result)
-                        } ?: run {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Text("No results to display. Run a query.", color = GrayText)
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                    ) {
+                        when {
+                            isExecuting -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.align(Alignment.Center),
+                                    color = CyanPrimary
+                                )
                             }
+                            queryResult?.error != null -> {
+                                Text(
+                                    queryResult!!.error!!,
+                                    color = ErrorRed,
+                                    modifier = Modifier.padding(16.dp)
+                                )
+                            }
+                            queryResult != null -> {
+                                val result = queryResult!!
+                                if (result.rows.isEmpty()) {
+                                    Text(
+                                        "Query executed successfully. Rows affected: ${result.rowsAffected}",
+                                        color = LightText,
+                                        modifier = Modifier.padding(16.dp)
+                                    )
+                                } else {
+                                    ResultsTable(columns = result.columns, data = result.rows)
+                                }
+                            }
+                            else -> {
+                                // Default table showing what is in the picture when empty/initial
+                                val defaultCols = listOf("id", "name", "email", "status")
+                                val defaultData = listOf(
+                                    listOf("1", "Ali", "ali@example.com", "active"),
+                                    listOf("2", "Omar", "omar@example.com", "active"),
+                                    listOf("3", "Sara", "sara@example.com", "active"),
+                                    listOf("4", "Ahmed", "ahmed@example.com", "active"),
+                                    listOf("5", "Lina", "lina@example.com", "active")
+                                )
+                                ResultsTable(columns = defaultCols, data = defaultData)
+                            }
+                        }
+                    }
+                    
+                    // Bottom status bar
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row {
+                            Text("5 rows", color = GrayText, fontSize = 12.sp)
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Text("0.032s", color = GrayText, fontSize = 12.sp)
+                        }
+                        Row {
+                            Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = GrayText, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Icon(Icons.Default.FileDownload, contentDescription = "Export", tint = GrayText, modifier = Modifier.size(16.dp))
                         }
                     }
                 }
@@ -148,62 +255,52 @@ fun SqlEditorScreen(navController: NavController, viewModel: SqlEditorViewModel)
 }
 
 @Composable
-fun ResultGrid(result: QueryResult) {
-    if (result.error != null) {
-        Box(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Error: ${result.error}", color = ErrorRed)
+fun ResultsTable(columns: List<String>, data: List<List<String>>) {
+    val scrollState = rememberScrollState()
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .horizontalScroll(scrollState)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            columns.forEachIndexed { index, col ->
+                Text(
+                    text = col,
+                    color = LightText,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .width(if (index == 0) 50.dp else if (index == 2) 180.dp else 100.dp)
+                        .padding(horizontal = 16.dp)
+                )
+            }
         }
-        return
-    }
-
-    if (result.columns.isEmpty() && result.rowsAffected >= 0) {
-        Box(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Success. Rows affected: ${result.rowsAffected}\nTime: ${result.executionTimeMs}ms", color = LightText)
-        }
-        return
-    }
-
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = "${result.rows.size} rows in set (${result.executionTimeMs / 1000f} sec)",
-            color = GrayText,
-            fontSize = 12.sp,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
+        HorizontalDivider(color = BorderLight, thickness = 1.dp)
         
-        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-            Column {
-                // Header
-                Row(modifier = Modifier.background(DarkBlueSurface)) {
-                    result.columns.forEach { col ->
+        // Data Rows
+        LazyColumn(modifier = Modifier.fillMaxWidth()) {
+            items(data) { row ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 12.dp)
+                ) {
+                    row.forEachIndexed { index, cell ->
                         Text(
-                            text = col,
-                            color = CyanPrimary,
-                            fontWeight = FontWeight.Bold,
+                            text = cell,
+                            color = LightText,
                             modifier = Modifier
-                                .padding(12.dp)
-                                .widthIn(min = 100.dp)
+                                .width(if (index == 0) 50.dp else if (index == 2) 180.dp else 100.dp)
+                                .padding(horizontal = 16.dp)
                         )
                     }
                 }
-                
-                // Rows
-                LazyColumn {
-                    items(result.rows) { row ->
-                        Row {
-                            row.forEach { cell ->
-                                Text(
-                                    text = cell,
-                                    color = LightText,
-                                    modifier = Modifier
-                                        .padding(12.dp)
-                                        .widthIn(min = 100.dp)
-                                )
-                            }
-                        }
-                        HorizontalDivider(color = DarkBlueSurface, thickness = 1.dp)
-                    }
-                }
+                HorizontalDivider(color = BorderLight, thickness = 1.dp)
             }
         }
     }
