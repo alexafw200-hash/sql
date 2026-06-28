@@ -3,8 +3,8 @@ package com.example.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,7 +36,7 @@ fun SqlTranslatorScreen(navController: NavController) {
                 title = { Text("SQL Translator", fontSize = 18.sp) },
                 navigationIcon = {
                     IconButton(onClick = { navController.navigateUp() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -60,7 +60,7 @@ fun SqlTranslatorScreen(navController: NavController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 EngineSelector(selected = fromEngine, onSelect = { fromEngine = it })
-                Icon(Icons.Default.ArrowForward, contentDescription = null, tint = LightText)
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = LightText)
                 EngineSelector(selected = toEngine, onSelect = { toEngine = it })
             }
             
@@ -132,7 +132,7 @@ fun EngineSelector(selected: String, onSelect: (String) -> Unit) {
             onValueChange = {},
             readOnly = true,
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.menuAnchor(),
+            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = DarkBlueSurface,
                 unfocusedContainerColor = DarkBlueSurface,
