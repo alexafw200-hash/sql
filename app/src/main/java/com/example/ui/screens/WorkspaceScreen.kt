@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,23 +36,77 @@ import androidx.navigation.NavController
 import com.example.data.ConnectionEntity
 import com.example.ui.navigation.Screen
 import com.example.ui.theme.*
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkspaceScreen(navController: NavController, viewModel: com.example.ui.viewmodels.WorkspaceViewModel) {
     val connections by viewModel.connections.collectAsStateWithLifecycle()
     var searchQuery by remember { mutableStateOf("") }
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
 
-    Scaffold(
-        topBar = {
-            Column {
-                TopAppBar(
-                    title = { Text("Projects", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) },
-                    navigationIcon = {
-                        IconButton(onClick = { /* Drawer */ }) {
-                            Icon(Icons.Default.Menu, contentDescription = "Menu")
-                        }
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = DarkBlueSurface
+            ) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "SQL RUN",
+                    modifier = Modifier.padding(16.dp),
+                    color = CyanPrimary,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+                HorizontalDivider(color = BorderLight)
+                
+                NavigationDrawerItem(
+                    label = { Text("SQL Editor", color = LightText) },
+                    selected = false,
+                    onClick = { 
+                        scope.launch { drawerState.close() }
+                        navController.navigate(Screen.SqlEditor.route) 
                     },
+                    icon = { Icon(Icons.Default.Code, contentDescription = null, tint = CyanPrimary) },
+                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
+                )
+                
+                NavigationDrawerItem(
+                    label = { Text("Database Explorer", color = LightText) },
+                    selected = false,
+                    onClick = { 
+                        scope.launch { drawerState.close() }
+                        navController.navigate(Screen.DatabaseExplorer.route) 
+                    },
+                    icon = { Icon(Icons.Default.Storage, contentDescription = null, tint = CyanPrimary) },
+                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
+                )
+                
+                NavigationDrawerItem(
+                    label = { Text("SQL Translator", color = LightText) },
+                    selected = false,
+                    onClick = { 
+                        scope.launch { drawerState.close() }
+                        navController.navigate(Screen.SqlTranslator.route) 
+                    },
+                    icon = { Icon(Icons.Default.Translate, contentDescription = null, tint = CyanPrimary) },
+                    colors = NavigationDrawerItemDefaults.colors(unselectedContainerColor = Color.Transparent)
+                )
+            }
+        }
+    ) {
+        Scaffold(
+            topBar = {
+                Column {
+                    TopAppBar(
+                        title = { Text("Projects", fontSize = 18.sp, fontWeight = FontWeight.SemiBold) },
+                        navigationIcon = {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                Icon(Icons.Default.Menu, contentDescription = "Menu")
+                            }
+                        },
                     actions = {
                         IconButton(onClick = { /* Search */ }) {
                             Icon(Icons.Default.Search, contentDescription = "Search", tint = LightText)
@@ -148,6 +203,7 @@ fun WorkspaceScreen(navController: NavController, viewModel: com.example.ui.view
                  Spacer(modifier = Modifier.height(80.dp)) // FAB padding
             }
         }
+    }
     }
 }
 

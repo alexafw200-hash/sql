@@ -10,6 +10,10 @@ object SqlTranslationEngine {
             // Add more SQLite -> MySQL replacements
         } else if (fromEngine == "MySQL" && toEngine == "SQLite") {
             translated = translated.replace("AUTO_INCREMENT", "AUTOINCREMENT", ignoreCase = true)
+            // SQLite requires INTEGER PRIMARY KEY AUTOINCREMENT
+            translated = translated.replace(Regex("(?i)INT\\s+AUTOINCREMENT\\s+PRIMARY\\s+KEY"), "INTEGER PRIMARY KEY AUTOINCREMENT")
+            translated = translated.replace(Regex("(?i)INTEGER\\s+AUTOINCREMENT\\s+PRIMARY\\s+KEY"), "INTEGER PRIMARY KEY AUTOINCREMENT")
+            translated = translated.replace(Regex("(?i)INT\\s+PRIMARY\\s+KEY\\s+AUTOINCREMENT"), "INTEGER PRIMARY KEY AUTOINCREMENT")
         } else if (toEngine == "PostgreSQL") {
             translated = translated.replace("AUTOINCREMENT", "SERIAL", ignoreCase = true)
             translated = translated.replace("AUTO_INCREMENT", "SERIAL", ignoreCase = true)
